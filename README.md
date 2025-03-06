@@ -8,4 +8,4 @@ I am currently trying out the controls for the ship.
 There rlly isn't any
 
 ## How to run code
-Download the file and run it. You may have to download python & pygame. 
+Download the ship.py file and run it. You may have to download python & pygame. 
