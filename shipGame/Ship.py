@@ -1,9 +1,14 @@
 import pygame
 import math
+import os
 
 pygame.init()
 
 pygame.display.set_caption("Ship")
+
+current_file_path = __file__
+
+# Get the directory containing the current file
 
 class Game:
     def __init__(self):
@@ -11,13 +16,16 @@ class Game:
         self.height = 650
         self.win = pygame.display.set_mode((self.width, self.height))
         self.run = True
+        self.current_dir = os.path.dirname(current_file_path)
+        print(self.current_dir)
 
 Game = Game()
 
 class Ship:
-    originalShipImage = pygame.image.load("Ship.png").convert_alpha()
+
+    originalShipImage = pygame.image.load(Game.current_dir + "\Ship.png").convert_alpha()
     originalScaledShipImage = pygame.transform.scale(originalShipImage, (128, 128))
-    shipImage = pygame.image.load("Ship.png").convert_alpha()
+    shipImage = pygame.image.load(Game.current_dir + "\Ship.png").convert_alpha()
     shipImage = pygame.transform.scale(shipImage, (128, 128))
     
     def __init__(self):
