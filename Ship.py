@@ -1,4 +1,5 @@
 import pygame
+import math
 
 pygame.init()
 
@@ -14,6 +15,11 @@ class Game:
 Game = Game()
 
 class Ship:
+    originalShipImage = pygame.image.load("Ship.png").convert_alpha()
+    originalScaledShipImage = pygame.transform.scale(originalShipImage, (128, 128))
+    shipImage = pygame.image.load("Ship.png").convert_alpha()
+    shipImage = pygame.transform.scale(shipImage, (128, 128))
+    
     def __init__(self):
         self.x = 50
         self.y = 50
@@ -25,20 +31,16 @@ class Ship:
         self.points = [(300, 100), (300, 200), (200, 200)]
 
     def draw(self, win):
-        NewPoints = self.Rotate(self.angle)
-        print(NewPoints[0][0])
-        pygame.draw.polygon(Game.win, self.color, 
-                    [[NewPoints[0][0]+self.x, NewPoints[0][1]+self.y], [NewPoints[1][0]+self.x, NewPoints[1][1]+self.y],
-                    [NewPoints[2][0]+self.x, NewPoints[2][1]+self.y]])
+        win.blit(Ship.shipImage, (self.x - int(Ship.shipImage.get_width() / 2), self.y - int(Ship.shipImage.get_height() / 2)))
 
-        # pygame.draw.polygon(Game.win, self.color, 
-        #             [[300+self.x, 100+self.y], [300+self.x, 200+self.y],
-        #             [200+self.x, 200+self.y]])
     def Rotate(self, angle):
-        pp = pygame.math.Vector2(300+self.x, 200+self.y)
-        rotated_points = [
-            (pygame.math.Vector2(x, y) - pp).rotate(angle) + pp for x, y in self.points]
-        return rotated_points
+        Ship.shipImage = pygame.transform.rotate(Ship.originalScaledShipImage, -angle)
+
+    def Move(self,vel): 
+        self.vel = vel 
+        
+        self.x += self.vel * math.cos(math.radians(self.angle))
+        self.y += self.vel * math.sin(math.radians(self.angle))
 
 
 plr = Ship()
@@ -53,16 +55,18 @@ while Game.run:
 
     if keys[pygame.K_LEFT]:
         plr.angle += 1
+        plr.Rotate(plr.angle)
     if keys[pygame.K_RIGHT]:
         plr.angle -= 1
+        plr.Rotate(plr.angle)
     if keys[pygame.K_UP]:
-        plr.y -= 1
+        plr.Move(1)
     if keys[pygame.K_DOWN]:
-        plr.y += 1
+        plr.Move(-1)
     plr.draw(Game.win)
     pygame.display.update()
         
-        
+    print(plr.angle)
     
 
 pygame.quit()
