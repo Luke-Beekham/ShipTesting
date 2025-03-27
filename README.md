@@ -7,11 +7,12 @@ You control a ship in a 2d environment destroying enemys who harm your home plan
 This game will have a story and maybe a ending if not dev lazy. 
 
 ## Current Progress
-1. I have figured out the controls for the ship!! You move forward and backward with w/s and turn left/right with a/d. 
+1. I have figured out the controls for the ship!! You move forward and backward with w/s and turn left/right with a/d.
+2. I added a enemy that follows you.  
 
 ## Things that will be added
 
-- Enemys
+- More Enemys
 - Lazer to shoot with
 - A story 
 - Maybe boss 
