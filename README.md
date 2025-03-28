@@ -11,6 +11,10 @@ This game will have a story and maybe a ending if not dev lazy.
 2. I added a enemy that follows you.  
 3. I added Lazers and a Lazer heat value
 
+![A Showcase of a spaceship shooting lazers](LazerShooting.gif)
+
+
+
 ## Things that will be added
 
 - More Enemys
