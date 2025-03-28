@@ -9,6 +9,7 @@ This game will have a story and maybe a ending if not dev lazy.
 ## Current Progress
 1. I have figured out the controls for the ship!! You move forward and backward with w/s and turn left/right with a/d.
 2. I added a enemy that follows you.  
+3. I added Lazers and a Lazer heat value
 
 ## Things that will be added
 
