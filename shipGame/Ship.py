@@ -27,7 +27,6 @@ class BackEnd:
         self.current_dir = os.path.dirname(current_file_path)
         self.image_Folder = self.current_dir + "\Images"
         self.sound_Folder = self.current_dir + "\Sounds"
-        print(self.sound_Folder)
         self.music_Folder = self.current_dir + "\Music"
         self.imageList = []
     def LoadImages(self):
@@ -191,13 +190,29 @@ class Enemy:
     def Rotate(self):
         self.image = Entity.Rotate(self.orginalImage,self.angle)
     
+    def IsMaskOverlap(self,mask,rect):        
+        x = rect.x
+        y = rect.y
+
+        # Correct the offset calculation for mask overlap
+
+        offset_x = x - int(self.x - self.image.get_width() / 2)
+        offset_y = y - int(self.y - self.image.get_height() / 2)
+        if self.mask.overlap(mask, (offset_x, offset_y)):
+            return True
+        return False
+    
     def Update(self):
         
         self.angle = Entity.FollowAngle(self.x,self.y,plr.x,plr.y)
         self.Rotate()
         self.Move()
+        if self.IsMaskOverlap(plr.mask,plr.rect):
+            plr.ChangeHealth(-1)
         self.Draw()
+
     
+            
     @classmethod
     def UpdateEnemies(cls):
         for enemy in cls.EnemyList:
@@ -231,10 +246,15 @@ class Ship:
         self.LazerHeatBar = Drawing(37.5,37.5,100,25,(0,255,0),(0,255,0),"rect")
         self.LazersFired = 0
         self.LazerCooldown = False
-
-
+        self.health = 100
+        self.healthBarBackground = Drawing(25,100,50,120,(0,0,0),(130, 127, 128),"rect")
+        self.healthBar = Drawing(37.5,112.5,25,100,(255,255,255),(255,0,0),"rect")
+        self.mask = pygame.mask.from_surface(self.shipImage)
+        self.rect = self.shipImage.get_rect()
+        self.rect.center = (self.x, self.y)  
     def Draw(self):
         Entity.Draw(Ship.shipImage, self.x, self.y)
+        self.rect.center = (self.x, self.y)
 
     def Rotate(self, angle):
         Ship.shipImage = Entity.Rotate(Ship.originalScaledShipImage, angle)
@@ -265,6 +285,16 @@ class Ship:
             Ship.shipLazerSound.play()
         else:
             Game.ReStartTimer(Ship.shipLazerSoundTimer,50)
+    
+    def ChangeHealth(self,health):
+        self.health += health
+        if self.health <= 0:
+            print("You Died")
+        if self.health > 100:
+            self.health = 100
+        self.healthBar.height = self.health 
+        self.healthBar.draw()
+        self.healthBarBackground.draw()
     def Update(self):
         self.Draw()
         for tuple in self.LazerList:
