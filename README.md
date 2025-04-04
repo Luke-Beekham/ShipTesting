@@ -10,15 +10,16 @@ This game will have a story and maybe a ending if not dev lazy.
 1. I have figured out the controls for the ship!! You move forward and backward with w/s and turn left/right with a/d.
 2. I added a enemy that follows you.  
 3. I added Lazers and a Lazer heat value
+4. I made the lazers aim with your mouse (You can kill enemies now)
 
-![A Showcase of a spaceship shooting lazers](LazerShooting.gif)
+![A Showcase of a spaceship shooting lazers](shipGameShowcase.gif)
 
 
 
 ## Things that will be added
 
 - More Enemys
-- Lazer to shoot with
+- Different types of Lazers to shoot with
 - A story 
 - Maybe boss 
 
