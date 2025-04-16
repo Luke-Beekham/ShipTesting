@@ -32,16 +32,17 @@ class BackEnd:
     def LoadImages(self):
         Ship = pygame.image.load(self.image_Folder + "\Ship.png").convert_alpha()
         MachineSoulEnemy1 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy1.png").convert_alpha()
+        MachineSoulEnemy2 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy2.png").convert_alpha()
         ShipLazer = pygame.image.load(self.image_Folder + "\ShipLazer.png").convert_alpha()
         EnemyLazer = pygame.image.load(self.image_Folder + "\EnemyLazer.png").convert_alpha()
         TargetCursor = pygame.image.load(self.image_Folder + "\TargetCursor.png").convert_alpha()
         self.imageList = {
             "Ship" : Ship,
             "MachineSoulEnemy1" : MachineSoulEnemy1,
+            "MachineSoulEnemy2" : MachineSoulEnemy2,
             "ShipLazer" : ShipLazer,
             "EnemyLazer" : EnemyLazer,
-            "TargetCursor" : TargetCursor
-            
+            "TargetCursor" : TargetCursor,
             
         }
         return self.imageList
@@ -110,55 +111,119 @@ class Sound:
             self.played = False
 
 class Entity:
-
-    def Draw(self,image,x,y):
+    @staticmethod
+    def Draw(image,x,y):
         Game.win.blit(image, (x - int(image.get_width() / 2), y - int(image.get_height() / 2)))
 
-    def Move(self,x,y,angle,vel): 
+    @staticmethod
+    def Move(x,y,angle,vel): 
         
         x += vel * math.cos(math.radians(angle))
         y += vel * math.sin(math.radians(angle))
 
         return x,y
     
-    def Rotate(self,orginalImage,angle):
+    @staticmethod
+    def Rotate(orginalImage,angle):
         newImage = pygame.transform.rotate(orginalImage, -angle)
         return newImage
     
-    def FollowAngle(self,x,y,targetX,targetY):
+    @staticmethod
+    def FollowAngle(x,y,targetX,targetY):
         angle = math.atan2(targetY - y, targetX - x)
         angle = math.degrees(angle)
         return angle
     
-    def ShootLazers(self, x, y, angle, vel, img):
-        rect = img.get_rect()
-        rect.center = (x, y)  # Set the center of the rect to the initial position of the laser
 
-        mask = pygame.mask.from_surface(img)
 
-        self.Draw(img, rect.x, rect.y)
-        return rect, mask
-    
-    def UpdateLazers(self, vel, img, angle, rect):
-        rect.x += vel * math.cos(math.radians(angle))
-        rect.y += vel * math.sin(math.radians(angle))
-
-        if rect.right < 0 or rect.left > Game.width or rect.bottom < 0 or rect.top > Game.height:
-            return False
-        else:
-            self.Draw(img, rect.centerx, rect.centery)  # Use the center of the rect for drawing
-            return True
-
-    
     
     
 Entity = Entity()
 
 
+class Lazer:
+    EnemyLazerImg = Game.imageList["EnemyLazer"].copy()
+    EnemyLazerImg = pygame.transform.scale(EnemyLazerImg, (10, 10))
+
+    ShipLazerImg = Game.imageList["ShipLazer"].copy()
+    ShipLazerImg = pygame.transform.scale(ShipLazerImg, (10, 10))
+
+    LazerList = []
+
+    def __init__(self,x,y,angle,vel,type):
+        self.Initalx = x
+        self.Intialy = y
+        self.angle = angle
+        self.vel = vel
+
+        if type == "Enemy":
+            img = Lazer.EnemyLazerImg.copy()
+        elif type == "Ship":
+            img = Lazer.ShipLazerImg.copy()
+        else:
+            print("NO TYPE FOR LAZER!!")
+        self.image = img
+        self.rect = img.get_rect()
+        self.rect.center = (x, y)  # Set the center of the rect to the initial position of the laser
+        self.mask = pygame.mask.from_surface(img)
+        self.type = type
+        Lazer.LazerList.append(self)
+
+    def Draw(self):
+        Entity.Draw(self.image,self.rect.x,self.rect.y)
+    
+    def Move(self):
+        self.rect.x,self.rect.y = Entity.Move(self.rect.x,self.rect.y,self.angle,self.vel)
+    
+    def Remove(self):
+        Lazer.LazerList.remove(self)
+    
+    def IsMaskOverlap(self,mask,rect):
+        x = rect.x
+        y = rect.y
+
+        # Correct the offset calculation for mask overlap
+
+        offset_x = x - int(self.rect.x - self.image.get_width() / 2)
+        offset_y = y - int(self.rect.y - self.image.get_height() / 2)
+        if self.mask.overlap(mask, (offset_x, offset_y)):
+            return True
+        return False
+    
+    def Update(self):
+        self.Move()
+        self.Draw()
+        if self.rect.x < 0 or self.rect.x > Game.width or self.rect.y < 0 or self.rect.y > Game.height:
+            self.Remove()
+            return
+        
+        if self.type == "Ship":
+            for enemy in Enemy.EnemyList:
+                # Correct the offset calculation for mask overlap
+                offset_x = self.rect.x - int(enemy.x - enemy.image.get_width() / 2)
+                offset_y = self.rect.y - int(enemy.y - enemy.image.get_height() / 2)
+                if enemy.mask.overlap(self.mask, (offset_x, offset_y)):
+                    Enemy.EnemyList.remove(enemy)
+                    self.Remove()
+                    break
+        elif self.type == "Enemy":
+            if self.IsMaskOverlap(plr.mask,plr.rect):
+                plr.ChangeHealth(-10)
+                self.Remove()
+    
+    @classmethod
+    def UpdateLazers(cls):
+        for Lazer in cls.LazerList:
+            Lazer.Update()
 
 class Enemy:
     EnemyList = []
     EnemyTimer = Game.CreateTimer(5000)
+    EnemyFireTimer = Game.CreateTimer(3000)
+
+    Lazer = Game.imageList["EnemyLazer"].copy()
+    Lazer = pygame.transform.scale(Lazer, (10, 10))
+    
     
     def __init__(self,x,y,type):
         self.x = x
@@ -169,6 +234,7 @@ class Enemy:
         self.orginalImage = Game.imageList[type]
         self.image = Game.imageList[type]
         self.mask = pygame.mask.from_surface(self.image)
+        self.LazerList = []
         Enemy.EnemyList.append(self)
 
     def createEnemy(type):
@@ -202,21 +268,32 @@ class Enemy:
             return True
         return False
     
+    def ShootLazers(self):
+        NewLazer = Lazer(self.x,self.y,self.angle,5,"Enemy")
     def Update(self):
-        
-        self.angle = Entity.FollowAngle(self.x,self.y,plr.x,plr.y)
-        self.Rotate()
-        self.Move()
-        if self.IsMaskOverlap(plr.mask,plr.rect):
-            plr.ChangeHealth(-1)
+        if self.type == "MachineSoulEnemy1":
+            self.angle = Entity.FollowAngle(self.x,self.y,plr.x,plr.y)
+            self.Rotate()
+            self.Move()
+            if self.IsMaskOverlap(plr.mask,plr.rect):
+                plr.ChangeHealth(-1)
+        elif self.type == "MachineSoulEnemy2":
+            self.angle = Entity.FollowAngle(self.x,self.y,plr.x,plr.y)
+            self.Rotate()
+            if math.dist((self.x,self.y),(plr.x,plr.y)) >= 300:
+                self.Move()
+
+           
+
         self.Draw()
 
-    
+
             
     @classmethod
     def UpdateEnemies(cls):
         for enemy in cls.EnemyList:
             enemy.Update()
+                
 
 
 class Ship:
@@ -270,12 +347,10 @@ class Ship:
         if self.LazerCooldown:
             self.LazerHeatBar.color = (255,0,0)
             self.LazerHeatBar.fillColor = (255,0,0)
-
             return
-        NewLazer = self.shipLazer.copy()
+        
         angle = Entity.FollowAngle(self.x,self.y,Target.x,Target.y)
-        rect,mask = Entity.ShootLazers(self.x,self.y,angle,10,NewLazer)
-        self.LazerList.append((NewLazer,angle,rect,mask))
+        NewLazer = Lazer(self.x,self.y,angle,20,"Ship")
 
         self.LazersFired += 1
         self.LazerHeatBar.width = 100 - (self.LazersFired) 
@@ -297,28 +372,6 @@ class Ship:
         self.healthBarBackground.draw()
     def Update(self):
         self.Draw()
-        for tuple in self.LazerList:
-            lazer = tuple[0]
-            angle = tuple[1]
-            rect = tuple[2]
-            mask = tuple[3]
-
-
-            # Access the coordinates
-            x = rect.x
-            y = rect.y
-
-            for enemy in Enemy.EnemyList:
-                # Correct the offset calculation for mask overlap
-                offset_x = x - int(enemy.x - enemy.image.get_width() / 2)
-                offset_y = y - int(enemy.y - enemy.image.get_height() / 2)
-                if enemy.mask.overlap(mask, (offset_x, offset_y)):
-                    Enemy.EnemyList.remove(enemy)
-                    self.LazerList.remove(tuple)
-                    break
-            if not(Entity.UpdateLazers(20,lazer,angle,rect)):
-                if tuple in self.LazerList:
-                    self.LazerList.remove(tuple)
         if self.LazersFired > 0:
             self.LazersFired -= 0.1
             self.LazerHeatBar.width = 100 - (self.LazersFired) 
@@ -395,10 +448,18 @@ while Game.run:
         if event.type == pygame.QUIT:
             Game.run = False
         if event.type == Enemy.EnemyTimer:
-            Enemy.createEnemy("MachineSoulEnemy1")
+            randomNum = random.randint(0,1)
+            if randomNum == 0:
+                Enemy.createEnemy("MachineSoulEnemy2")
+            else:
+                Enemy.createEnemy("MachineSoulEnemy1")
         if event.type == Ship.shipLazerSoundTimer:
             Ship.shipLazerSound.play()
             Game.StopTimer(Ship.shipLazerSoundTimer)
+        if event.type == Enemy.EnemyFireTimer:
+            for enemy in Enemy.EnemyList:
+                if enemy.type == "MachineSoulEnemy2":
+                    enemy.ShootLazers()
 
     keys = pygame.key.get_pressed()
 
@@ -421,6 +482,7 @@ while Game.run:
     plr.Update()
     Drawing.UpdateDrawings()
     Target.Update()
+    Lazer.UpdateLazers()
     pygame.display.update()
         
     clock.tick(60)
