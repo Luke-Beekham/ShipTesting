@@ -33,26 +33,38 @@ class BackEnd:
         Ship = pygame.image.load(self.image_Folder + "\Ship.png").convert_alpha()
         MachineSoulEnemy1 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy1.png").convert_alpha()
         MachineSoulEnemy2 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy2.png").convert_alpha()
+        MachineSoulEnemy3 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy3.png").convert_alpha()
+        MachineSoulEnemy4 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy4.png").convert_alpha()
         ShipLazer = pygame.image.load(self.image_Folder + "\ShipLazer.png").convert_alpha()
         EnemyLazer = pygame.image.load(self.image_Folder + "\EnemyLazer.png").convert_alpha()
         TargetCursor = pygame.image.load(self.image_Folder + "\TargetCursor.png").convert_alpha()
+        Map = pygame.image.load(self.image_Folder + "\Map.png").convert()
         self.imageList = {
             "Ship" : Ship,
             "MachineSoulEnemy1" : MachineSoulEnemy1,
             "MachineSoulEnemy2" : MachineSoulEnemy2,
+            "MachineSoulEnemy3" : MachineSoulEnemy3,
+            "MachineSoulEnemy4" : MachineSoulEnemy4,
             "ShipLazer" : ShipLazer,
             "EnemyLazer" : EnemyLazer,
             "TargetCursor" : TargetCursor,
-            
+            "Map" : Map,
         }
         return self.imageList
-    def CreateTimer(self,millSeconds):
+    
+
+    @staticmethod
+    def CreateTimer(millSeconds):
         Timer = pygame.event.custom_type()
         pygame.time.set_timer(Timer, millSeconds)
         return Timer
-    def StopTimer(self,Timer):
+    
+    @staticmethod
+    def StopTimer(Timer):
         pygame.time.set_timer(Timer, 0)
-    def ReStartTimer(self,Timer,millSeconds):
+
+    @staticmethod
+    def ReStartTimer(Timer,millSeconds):
         pygame.time.set_timer(Timer, millSeconds)
 
 Game = BackEnd()
@@ -203,7 +215,7 @@ class Lazer:
                 offset_x = self.rect.x - int(enemy.x - enemy.image.get_width() / 2)
                 offset_y = self.rect.y - int(enemy.y - enemy.image.get_height() / 2)
                 if enemy.mask.overlap(self.mask, (offset_x, offset_y)):
-                    Enemy.EnemyList.remove(enemy)
+                    enemy.ChangeHealth(-1)
                     self.Remove()
                     break
         elif self.type == "Enemy":
@@ -235,8 +247,27 @@ class Enemy:
         self.image = Game.imageList[type]
         self.mask = pygame.mask.from_surface(self.image)
         self.LazerList = []
+
+        match type:
+            case "MachineSoulEnemy1":
+                self.health = 1
+            case "MachineSoulEnemy2":
+                self.health = 25
+            case "MachineSoulEnemy3":
+                self.health = 50
+                self.vel = 1
+            case "MachineSoulEnemy4":
+                self.health = 10
+                self.vel = 3
+            case _:
+                print("NO TYPE FOR ENEMY!!")
+                self.health = 1
+        
+        self.maxHealth = self.health
+        
         Enemy.EnemyList.append(self)
 
+    @staticmethod
     def createEnemy(type):
         TopOrSide = random.randint(0,1)
         if TopOrSide == 0:
@@ -270,6 +301,21 @@ class Enemy:
     
     def ShootLazers(self):
         NewLazer = Lazer(self.x,self.y,self.angle,5,"Enemy")
+    
+    def ChangeHealth(self,healthValue):
+        self.health += healthValue
+        if self.health <= 0:
+            Enemy.EnemyList.remove(self)
+            if hasattr(self, "HealthBar"):
+                self.HealthBar.Remove()
+            if hasattr(self, "HealthBeam"):
+                self.HealthBeam.Remove()
+            return 
+        if self.health < self.maxHealth and not hasattr(self, "HealthBar"):
+            self.HealthBar = Drawing.MakeRect(self.x,self.y,50,5,(0,255,0),(0,255,0),"rect")
+        if self.health > self.maxHealth:
+            self.health = self.maxHealth
+
     def Update(self):
         if self.type == "MachineSoulEnemy1":
             self.angle = Entity.FollowAngle(self.x,self.y,plr.x,plr.y)
@@ -282,12 +328,66 @@ class Enemy:
             self.Rotate()
             if math.dist((self.x,self.y),(plr.x,plr.y)) >= 300:
                 self.Move()
+        elif self.type == "MachineSoulEnemy3":
+            ClosestDistance = 9999999999
+            TargetX = None
+            TargetY = None
+            SavedEnemy = None
+            for enemy in Enemy.EnemyList:
+                if enemy == self or enemy.type == "MachineSoulEnemy3":
+                    continue
+                CurrentDistance = math.dist((self.x,self.y),(enemy.x,enemy.y))
+                if CurrentDistance < ClosestDistance:
+                    ClosestDistance = CurrentDistance
+                    TargetX = enemy.x
+                    TargetY = enemy.y
+                    SavedEnemy = enemy
+            
+            if not(TargetX == None or TargetY == None):  
+                self.angle = Entity.FollowAngle(self.x,self.y,TargetX,TargetY)
+                self.Rotate()
+                if not(ClosestDistance <= 25):
+                    self.Move()
 
-           
+                if hasattr(self, "HealthBeam"):
+                    self.HealthBeam.Remove()
+                self.HealthBeam = Drawing.MakeLine((self.x,self.y),(TargetX,TargetY),(0,255,0))
+                SavedEnemy.ChangeHealth(0.1)
+            else:
+                if hasattr(self, "HealthBeam"):
+                    self.HealthBeam.Remove()
+        elif self.type == "MachineSoulEnemy4":
+            self.angle = Entity.FollowAngle(self.x,self.y,plr.x,plr.y)
+            self.Rotate()
+            distiance = math.dist((self.x,self.y),(plr.x,plr.y))
+            transparencyValue = max(0, 255 - int(distiance))
+            if transparencyValue > 255:
+                transparencyValue = 255
+            elif transparencyValue < 50:
+                transparencyValue = 50
+            self.image.set_alpha(transparencyValue)
+            self.Move()
+            if self.IsMaskOverlap(plr.mask,plr.rect):
+                plr.ChangeHealth(-0.5)
 
+        if hasattr(self, "HealthBar"):
+            self.HealthBar.x = self.x - 25
+            self.HealthBar.y = self.y - 25
+
+            
+
+            self.HealthBar.width = 50 * (self.health / self.maxHealth)
+
+            self.HealthBar.fillColor = (0,255,0)
+
+            if self.health < self.maxHealth / 2:
+                self.HealthBar.fillColor = (255,255,0)
+            if self.health < self.maxHealth / 10:
+                self.HealthBar.fillColor = (255,0,0)
+
+            self.HealthBar.draw()
+  
         self.Draw()
-
-
             
     @classmethod
     def UpdateEnemies(cls):
@@ -319,13 +419,14 @@ class Ship:
         self.color = (0, 255, 0)
         self.angle = 0
         self.LazerList = []
-        self.LazerHeatBackground = Drawing(25,25,120,50,(0,0,0),(0,0,0),"rect")
-        self.LazerHeatBar = Drawing(37.5,37.5,100,25,(0,255,0),(0,255,0),"rect")
+        self.LazerHeatBackground = Drawing.MakeRect(25,25,120,50,(0,0,0),(130, 127, 128),"rect")
+        self.LazerHeatBar = Drawing.MakeRect(37.5,37.5,100,25,(0,255,0),(0,255,0),"rect")
         self.LazersFired = 0
         self.LazerCooldown = False
         self.health = 100
-        self.healthBarBackground = Drawing(25,100,50,120,(0,0,0),(130, 127, 128),"rect")
-        self.healthBar = Drawing(37.5,112.5,25,100,(255,255,255),(255,0,0),"rect")
+        
+        self.healthBarBackground = Drawing.MakeRect(25,100,50,120,(0,0,0),(130, 127, 128),"rect")
+        self.healthBar = Drawing.MakeRect(37.5,112.5,25,100,(130,127,255),(255,0,0),"rect")
         self.mask = pygame.mask.from_surface(self.shipImage)
         self.rect = self.shipImage.get_rect()
         self.rect.center = (self.x, self.y)  
@@ -339,6 +440,14 @@ class Ship:
     def Move(self,direction):
         vel = direction * self.vel 
         self.x,self.y = Entity.Move(self.x,self.y,self.angle,vel)
+        if self.x < 0:
+            self.x = 0
+        if self.x > Game.width:
+            self.x = Game.width
+        if self.y < 0:
+            self.y = 0
+        if self.y > Game.height:
+            self.y = Game.height
     
     def ShootLazer(self):
         if self.LazersFired >= 100:
@@ -385,22 +494,42 @@ class Ship:
                 self.LazerHeatBar.draw()
 
 
+
+
 class Drawing:
     drawingList = []
-    def __init__(self,x,y,width,height,color,fillcolor,type):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.color = color
+
+
+    @classmethod
+    def MakeRect(cls,x,y,width,height,color,fillcolor,type):
+
+        NewDrawing = Drawing()
+        NewDrawing.x = x
+        NewDrawing.y = y
+        NewDrawing.width = width
+        NewDrawing.height = height
+        NewDrawing.color = color
         if fillcolor == None:
-            self.fillColor = None
-        self.fillColor = fillcolor
-        self.type = type
+            NewDrawing.fillColor = None
+        NewDrawing.fillColor = fillcolor
+        NewDrawing.type = type
 
+        Drawing.drawingList.append(NewDrawing)
 
+        return NewDrawing
+    
+    @classmethod
+    def MakeLine(cls,startPoint,endPoint,color):
 
-        Drawing.drawingList.append(self)
+        NewDrawing = Drawing()
+        NewDrawing.startPoint = startPoint
+        NewDrawing.endPoint = endPoint
+        NewDrawing.color = color
+        NewDrawing.type = "line"
+
+        Drawing.drawingList.append(NewDrawing)
+
+        return NewDrawing
 
     def MakeSurface(self):
         if self.type == "rect":
@@ -413,12 +542,22 @@ class Drawing:
         if self.type == "rect":
             self.MakeSurface()
             Game.win.blit(self.surface, (self.x, self.y))
+        elif self.type == "line":
+            pygame.draw.line(Game.win, self.color, self.startPoint, self.endPoint, 2)
+
+    
+    def Remove(self):
+        if self in Drawing.drawingList:
+            Drawing.drawingList.remove(self)
 
     @classmethod
     def UpdateDrawings(cls):
         for drawing in cls.drawingList:
             drawing.draw()    
         
+
+
+
 
 class TargetCursor:
     def __init__(self,x,y):
@@ -443,16 +582,15 @@ Target = TargetCursor(0,0)
 pygame.mouse.set_visible(False)
 
 while Game.run:
-    Game.win.fill((255, 255, 255))
+    Game.win.blit(Game.imageList["Map"], (0, 0))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             Game.run = False
         if event.type == Enemy.EnemyTimer:
-            randomNum = random.randint(0,1)
-            if randomNum == 0:
-                Enemy.createEnemy("MachineSoulEnemy2")
-            else:
-                Enemy.createEnemy("MachineSoulEnemy1")
+            randomNum = random.randint(0,3)
+            randomNum += 1
+            enemyType = "MachineSoulEnemy" + str(randomNum)
+            Enemy.createEnemy(enemyType)
         if event.type == Ship.shipLazerSoundTimer:
             Ship.shipLazerSound.play()
             Game.StopTimer(Ship.shipLazerSoundTimer)
