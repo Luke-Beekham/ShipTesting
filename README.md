@@ -12,7 +12,7 @@ This game will have a story and maybe a ending if not dev lazy.
 3. I added Lazers and a Lazer heat value
 4. I made the lazers aim with your mouse (You can kill enemies now)
 5. I added 3 new enemies (One shoots, one heals, one turns invisible) and a new map!
-
+6. Added Wave based Enemies and a wave timer
 ![A Showcase of the game](shipMapGameShowcase.gif)
 
 
@@ -23,6 +23,7 @@ This game will have a story and maybe a ending if not dev lazy.
 - Different types of Lazers to shoot with
 - A story 
 - Maybe boss 
+- Tutorial 
 
 
 ## Excepted Release date
