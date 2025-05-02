@@ -3,6 +3,7 @@ import math
 import os
 import random
 
+
 pygame.init()
 
 pygame.display.set_caption("Ship")
@@ -22,9 +23,9 @@ class BackEnd:
         self.win = pygame.display.set_mode((self.width, self.height))
         self.run = True
         self.current_dir = os.path.dirname(current_file_path)
-        self.image_Folder = self.current_dir + "\Images"
-        self.sound_Folder = self.current_dir + "\Sounds"
-        self.music_Folder = self.current_dir + "\Music"
+        self.image_Folder = os.path.join(self.current_dir, "Images")
+        self.sound_Folder = os.path.join(self.current_dir, "Sounds")
+        self.music_Folder = os.path.join(self.current_dir, "Music")
         self.imageList = []
         self.wave = 0
         self.WaveImageTimer = self.CreateTimer(5000)
@@ -46,29 +47,37 @@ class BackEnd:
         self.wave5List = random.sample(self.wave5List, len(self.wave5List))
 
         self.isMainMenu = True
+        self.isTutoral = False
 
+        self.isDialogBusy = False
+
+        self.TextObjs = []
+        self.TextLine = []
+
+        self.TutoralSequence = 0
 
 
     def LoadImages(self):
-        Ship = pygame.image.load(self.image_Folder + "\Ship.png").convert_alpha()
-        MachineSoulEnemy1 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy1.png").convert_alpha()
-        MachineSoulEnemy2 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy2.png").convert_alpha()
-        MachineSoulEnemy3 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy3.png").convert_alpha()
-        MachineSoulEnemy4 = pygame.image.load(self.image_Folder + "\MachineSoulEnemy4.png").convert_alpha()
-        ShipLazer = pygame.image.load(self.image_Folder + "\ShipLazer.png").convert_alpha()
-        EnemyLazer = pygame.image.load(self.image_Folder + "\EnemyLazer.png").convert_alpha()
-        TargetCursor = pygame.image.load(self.image_Folder + "\TargetCursor.png").convert_alpha()
-        Map = pygame.image.load(self.image_Folder + "\Map.png").convert()
-        Wave1 = pygame.image.load(self.image_Folder + "\WAVEONE.png").convert_alpha()
-        Wave2 = pygame.image.load(self.image_Folder + "\WAVETWO.png").convert_alpha()
-        Wave3 = pygame.image.load(self.image_Folder + "\WAVETHREE.png").convert_alpha()
-        Wave4 = pygame.image.load(self.image_Folder + "\WAVEFOUR.png").convert_alpha()
-        Wave5 = pygame.image.load(self.image_Folder + "\WAVEFIVE.png").convert_alpha()
-        MissionComplete = pygame.image.load(self.image_Folder + "\MissionComplete.png").convert_alpha()
-        MissionFailed = pygame.image.load(self.image_Folder + "\MissionFailed.png").convert_alpha()
-        ShipDied = pygame.image.load(self.image_Folder + "\ShipDied.png").convert_alpha()
-        Respawn = pygame.image.load(self.image_Folder + "\Respawn.png").convert_alpha()
-        MainMenu = pygame.image.load(self.image_Folder + "\MainMenu.png").convert_alpha()
+        Ship = pygame.image.load(os.path.join(self.image_Folder, "Ship.png")).convert_alpha()
+        MachineSoulEnemy1 = pygame.image.load(os.path.join(self.image_Folder, "MachineSoulEnemy1.png")).convert_alpha()
+        MachineSoulEnemy2 = pygame.image.load(os.path.join(self.image_Folder, "MachineSoulEnemy2.png")).convert_alpha()
+        MachineSoulEnemy3 = pygame.image.load(os.path.join(self.image_Folder, "MachineSoulEnemy3.png")).convert_alpha()
+        MachineSoulEnemy4 = pygame.image.load(os.path.join(self.image_Folder, "MachineSoulEnemy4.png")).convert_alpha()
+        ShipLazer = pygame.image.load(os.path.join(self.image_Folder, "ShipLazer.png")).convert_alpha()
+        EnemyLazer = pygame.image.load(os.path.join(self.image_Folder, "EnemyLazer.png")).convert_alpha()
+        TargetCursor = pygame.image.load(os.path.join(self.image_Folder, "TargetCursor.png")).convert_alpha()
+        Map = pygame.image.load(os.path.join(self.image_Folder, "Map.png")).convert()
+        Wave1 = pygame.image.load(os.path.join(self.image_Folder, "WAVEONE.png")).convert_alpha()
+        Wave2 = pygame.image.load(os.path.join(self.image_Folder, "WAVETWO.png")).convert_alpha()
+        Wave3 = pygame.image.load(os.path.join(self.image_Folder, "WAVETHREE.png")).convert_alpha()
+        Wave4 = pygame.image.load(os.path.join(self.image_Folder, "WAVEFOUR.png")).convert_alpha()
+        Wave5 = pygame.image.load(os.path.join(self.image_Folder, "WAVEFIVE.png")).convert_alpha()
+        MissionComplete = pygame.image.load(os.path.join(self.image_Folder, "MissionComplete.png")).convert_alpha()
+        MissionFailed = pygame.image.load(os.path.join(self.image_Folder, "MissionFailed.png")).convert_alpha()
+        ShipDied = pygame.image.load(os.path.join(self.image_Folder, "ShipDied.png")).convert_alpha()
+        Respawn = pygame.image.load(os.path.join(self.image_Folder, "Respawn.png")).convert_alpha()
+        MainMenu = pygame.image.load(os.path.join(self.image_Folder, "MainMenu.png")).convert_alpha()
+        
 
         self.imageList = {
             "Ship" : Ship,
@@ -144,6 +153,52 @@ class BackEnd:
         else:
             self.win.blit(Game.imageList["Map"], (0, 0))
     
+    def AddDialog(self,text=str):
+        if self.isDialogBusy:
+            return
+
+        self.TextBackground = Drawing.MakeRect(200,Game.height-200,Game.width-400,Game.height-400,(0,0,0),(0,0,0),"rect",180)
+        TextBackgroundCenterX = self.TextBackground.x + self.TextBackground.width / 2
+
+
+        lines = []
+        x = 0
+        w = len(text)
+
+        font = pygame.font.Font(None, 50)
+        while x < w:
+            while font.size(text[x:w])[0] > Game.TextBackground.width -40:
+                w -= 1
+            lines.append(text[x:w])
+            x = w
+            w = len(text)
+
+        linesize = font.get_linesize()
+
+        y = self.TextBackground.y+100
+    
+        for line in lines:
+            TextObj = Drawing.MakeText(Game.TextBackground.x+50,y,"",(255,255,255),50)
+            TextObj.draw()
+
+            self.TextObjs.append(TextObj)
+
+            self.TextLine.append(line)
+
+            y += linesize
+        
+        self.TextBackground.draw()
+
+        self.DialogText = text
+
+        self.isDialogBusy = True
+        
+        self.ReStartTimer(DialogTimer, 400)
+
+    
+    def getDialogTime(self,text):
+        return len(text) * 400 + 3000
+    
     def ClickedButton(self,x,y):
         if not(self.isMainMenu):
             return
@@ -151,9 +206,24 @@ class BackEnd:
             self.isMainMenu = False
             self.NewWave()
         elif x >= 998 and x <= Game.width and y >= 460 and y <= 526:
-            pass # Add tutoral here!
+            self.isMainMenu = False
+            self.isTutoral = True
+            text = "Hello, Leftenant (LT). You are the pilot of the T class spaceship. - MAJOR Wilson"
+            self.AddDialog(text) 
+            self.ReStartTimer(Game.TutoralTimer, self.getDialogTime(text))
+            self.TutoralSequence = 1
+    
+    def UpdateMusic(self):
+        if not(self.isMainMenu) and not(self.isTutoral):
+            if not GameMusic.played:
+                GameMusic.play(pygame.time.get_ticks())
+        else:
+            GameMusic.stop()
+            GameMusic.played = False
+            GameMusic.lastPlayedTime = 0
     
 Game = BackEnd()
+
 
 Game.LoadImages()
 
@@ -167,14 +237,13 @@ class Music:
         self.lastPlayedTime = 0
 
     def play(self,currentTime):    
-        if not self.played or (currentTime - self.lastPlayedTime > self.playedTime):
-            pygame.mixer.init()
-            pygame.mixer.music.load(self.music)
-            pygame.mixer.music.set_volume(self.vol)
-            pygame.mixer.music.play()
 
-            self.played = True
-            self.lastPlayedTime = currentTime
+        pygame.mixer.music.load(self.music)
+        pygame.mixer.music.set_volume(self.vol)
+        pygame.mixer.music.play(loops=-1)
+
+        self.played = True
+        self.lastPlayedTime = currentTime
     def stop(self):
         if self.played:
             pygame.mixer.music.stop() 
@@ -206,6 +275,9 @@ class Sound:
         if self.played:
             self.sound.stop()
             self.played = False
+    
+    def IsBusy(self):
+        return self.Channel.get_busy()
 
 class Entity:
     @staticmethod
@@ -318,6 +390,9 @@ class Enemy:
     Lazer = Game.imageList["EnemyLazer"].copy()
     Lazer = pygame.transform.scale(Lazer, (10, 10))
     makeEnemies = False
+
+    DieSound = Sound(os.path.join(Game.sound_Folder, "EnemyDieSound.wav"), 0.5)
+    LazerSound = Sound(os.path.join(Game.sound_Folder, "EnemyLazerSound.wav"), 0.5)
     
     def __init__(self,x,y,type):
         self.x = x
@@ -362,11 +437,6 @@ class Enemy:
         else:
             x = 0
             y = random.randint(0,Game.height)
-        if type == "MachineSoulEnemy3":
-            for enemy in Enemy.EnemyList:
-                if enemy.type == "MachineSoulEnemy3":
-                    type == "MachineSoulEnemy1"
-                    break
         Enemy1 = Enemy(x,y,type)
         
     def Draw(self):
@@ -395,6 +465,9 @@ class Enemy:
     
     def ShootLazers(self):
         NewLazer = Lazer(self.x,self.y,self.angle,5,"Enemy")
+        if not Enemy.LazerSound.Channel.get_busy():
+            Enemy.LazerSound.play()
+
     
     def ChangeHealth(self,healthValue):
         self.health += healthValue
@@ -404,6 +477,10 @@ class Enemy:
                 self.HealthBar.Remove()
             if hasattr(self, "HealthBeam"):
                 self.HealthBeam.Remove()
+            plr.LazersFired -= 10
+            if plr.LazersFired < 0:
+                plr.LazersFired = 0
+            Enemy.DieSound.play()
             return 
         if self.health < self.maxHealth and not hasattr(self, "HealthBar"):
             self.HealthBar = Drawing.MakeRect(self.x,self.y,50,5,(0,255,0),(0,255,0),"rect")
@@ -470,9 +547,7 @@ class Enemy:
         if hasattr(self, "HealthBar"):
             self.HealthBar.x = self.x - 25
             self.HealthBar.y = self.y - 25
-
             
-
             self.HealthBar.width = 50 * (self.health / self.maxHealth)
 
             self.HealthBar.fillColor = (0,255,0)
@@ -507,10 +582,12 @@ class Ship:
     shipDiedImage = Game.imageList["ShipDied"].copy()
     shipDiedImage = pygame.transform.scale(shipDiedImage,(32,32))
 
-    shipLazerSound = Sound(Game.sound_Folder + "/ShipLazerSound.wav",0.5)
+    shipLazerSound = Sound(os.path.join(Game.sound_Folder, "ShipLazerSound.wav"), 0.5)
 
     shipLazerSoundTimer = Game.CreateTimer(100)
     Game.StopTimer(shipLazerSoundTimer)    
+
+    shipDamageSound = Sound(os.path.join(Game.sound_Folder, "ShipDamageSound.wav"), 0.5)
     
     def __init__(self):
         self.x = Game.width / 2
@@ -624,6 +701,9 @@ class Ship:
         self.healthBar.height = self.health 
         self.healthBar.draw()
         self.healthBarBackground.draw()
+
+        if health < 0 and not(self.shipDamageSound.IsBusy()):
+            self.shipDamageSound.play()
     
 
     def Update(self):
@@ -651,9 +731,9 @@ class Ship:
 class Drawing:
     drawingList = []
 
-
+    
     @classmethod
-    def MakeRect(cls,x,y,width,height,color,fillcolor,type):
+    def MakeRect(cls,x,y,width,height,color,fillcolor,type,transpercy=255):
 
         NewDrawing = Drawing()
         NewDrawing.x = x
@@ -666,10 +746,30 @@ class Drawing:
         NewDrawing.fillColor = fillcolor
         NewDrawing.type = type
 
+
+        NewDrawing.transpercy = transpercy
+
         Drawing.drawingList.append(NewDrawing)
 
         return NewDrawing
     
+    @classmethod
+    def MakeText(cls,x,y,text,color,size):
+        NewDrawing = Drawing()
+        NewDrawing.x = x
+        NewDrawing.y = y
+        NewDrawing.text = text
+        NewDrawing.color = color
+        NewDrawing.type = "text"
+        NewDrawing.font = pygame.font.Font(None, size)
+        NewDrawing.surface = NewDrawing.font.render(text, True, color)
+        NewDrawing.rect = NewDrawing.surface.get_rect(center=(x, y))
+        Drawing.drawingList.append(NewDrawing)
+        
+        return NewDrawing
+        
+
+
     @classmethod
     def MakeLine(cls,startPoint,endPoint,color):
 
@@ -688,6 +788,7 @@ class Drawing:
             rect_surface = pygame.Surface((self.width, self.height)) 
             if self.fillColor != None:
                 rect_surface.fill(self.fillColor) 
+            rect_surface.set_alpha(self.transpercy)
         self.surface = rect_surface
 
     def draw(self):
@@ -696,6 +797,9 @@ class Drawing:
             Game.win.blit(self.surface, (self.x, self.y))
         elif self.type == "line":
             pygame.draw.line(Game.win, self.color, self.startPoint, self.endPoint, 2)
+        elif self.type == "text":
+            self.surface = self.font.render(self.text, True, self.color)
+            Game.win.blit(self.surface, self.rect)
 
     
     def Remove(self):
@@ -728,8 +832,17 @@ clock = pygame.time.Clock()
 Target = TargetCursor(0,0)
 pygame.mouse.set_visible(False)
 
+DialogTimer = Game.CreateTimer(500)
+Game.StopTimer(DialogTimer)
+Game.KeypressSound = Sound(os.path.join(Game.sound_Folder, "KeyPressSound.wav"), 0.5)
 
+Game.RemoveDialogTimer = Game.CreateTimer(2000)
+Game.StopTimer(Game.RemoveDialogTimer)
 
+Game.TutoralTimer = Game.CreateTimer(5000)
+Game.StopTimer(Game.TutoralTimer)
+
+GameMusic = Music(os.path.join(Game.music_Folder, "ShipGameMain.wav"), 0.5)
 
 while Game.run:
     Game.UpdateMap()
@@ -792,6 +905,74 @@ while Game.run:
                     Game.NewWave()
                     Game.StopTimer(Game.WaveTimer)
                     Game.ReStartTimer(Enemy.EnemyTimer,5000 - Game.wave * 500)
+        if event.type == DialogTimer:
+            
+
+            linesize = Game.TextObjs[0].font.get_linesize()
+            TextObj = None
+            textDialog = None
+            for i,Obj in enumerate(Game.TextObjs):
+                if Obj.text == Game.TextLine[i]:
+                    continue
+                else:
+                    TextObj = Obj
+                    textDialog = Game.TextLine[i]
+                    break
+            if TextObj != None:
+                
+                TextObj.text += textDialog[len(TextObj.text)]
+
+                TextObj.draw()
+                Game.KeypressSound.play()
+            else:
+                Game.StopTimer(DialogTimer)
+                Game.ReStartTimer(Game.RemoveDialogTimer, 2000)
+        if event.type == Game.RemoveDialogTimer:
+            Game.isDialogBusy = False
+            Game.StopTimer(Game.RemoveDialogTimer)
+            Game.TextBackground.Remove()
+
+            for Obj in Game.TextObjs:
+                Obj.Remove()
+            Game.TextObjs.clear()
+            Game.TextLine.clear()
+        if event.type == Game.TutoralTimer:
+            match Game.TutoralSequence:
+                case 1:
+                    text = '"To move your ship, use W and S keys to move forward and backward. A and D keys to rotate your ship." - MAJOR Wilson'
+                    Game.AddDialog(text)
+                    Game.ReStartTimer(Game.TutoralTimer, Game.getDialogTime(text))
+                    Game.TutoralSequence = 2
+                case 2:
+                    text = '"To shoot, use the left mouse button." - MAJOR Wilson'
+                    Game.AddDialog(text)
+                    Game.ReStartTimer(Game.TutoralTimer, Game.getDialogTime(text))
+                    Game.TutoralSequence = 3
+                case 3:
+                    text = '"There is an enemy ship in approaching. Shoot it down." - MAJOR Wilson'
+                    Game.AddDialog(text)
+                    Game.ReStartTimer(Game.TutoralTimer, Game.getDialogTime(text))
+                    Game.TutoralSequence = 4
+                case 4:
+                    Enemy.makeEnemies = True
+                    Enemy.createEnemy("MachineSoulEnemy1") 
+                    Game.TutoralSequence = 5
+                    Game.ReStartTimer(Game.TutoralTimer, 5000)
+                    Enemy.makeEnemies = False
+                case 5:
+                    if len(Enemy.EnemyList) == 0:                    
+                        text = '"Good job, LT. You have completed the tutorial." - MAJOR Wilson'
+                        Game.AddDialog(text)
+                        Game.ReStartTimer(Game.TutoralTimer, Game.getDialogTime(text))
+                        Game.TutoralSequence = 6
+                    else:
+                        Game.ReStartTimer(Game.TutoralTimer, 1000)
+                case 6:
+                    Game.isTutoral = False
+                    Game.isMainMenu = True
+                    Game.MainMenu()
+                    Game.StopTimer(Game.TutoralTimer)
+
                 
     keys = pygame.key.get_pressed()
 
@@ -810,12 +991,18 @@ while Game.run:
         
         if keys[pygame.K_r]:
             if plr.health <= 0:
+                for enemy in Enemy.EnemyList:
+                    if hasattr(enemy, "HealthBar"):
+                        enemy.HealthBar.Remove()
+                    if hasattr(enemy, "HealthBeam"):
+                        enemy.HealthBeam.Remove()
                 Enemy.EnemyList.clear()
-                print(Enemy.EnemyList)
+
                 plr.ChangeHealth(100) 
                 plr.shipImage = Ship.originalScaledShipImage.copy()
                 Ship.shipImage = plr.shipImage
                 plr.Rotate(plr.angle)
+                
                 Game.isWaveImage = False
                 Game.wave = 0
 
@@ -825,7 +1012,11 @@ while Game.run:
         Game.ClickedButton(pygame.mouse.get_pos()[0],pygame.mouse.get_pos()[1])
         
         plr.ShootLazer()
+    
+    # if not(Game.isMainMenu) and not(Game.isTutoral):
+    #     GameMusic.play(pygame.time.get_ticks())
 
+    Game.UpdateMusic()
     Enemy.UpdateEnemies()
     plr.Update()
     Drawing.UpdateDrawings()
