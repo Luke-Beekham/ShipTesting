@@ -13,6 +13,7 @@ This game will have a story and maybe a ending if not dev lazy.
 4. I made the lazers aim with your mouse (You can kill enemies now)
 5. I added 3 new enemies (One shoots, one heals, one turns invisible) and a new map!
 6. Added Wave based Enemies and a wave timer
+7. Added Polish and itch.io link
 
 ![A Showcase of the game](shipMapGameShowcase.gif)
 
@@ -28,12 +29,12 @@ This game will have a story and maybe a ending if not dev lazy.
 
 
 ## Excepted Release date
-There rlly isn't any but ig start of june 2025
+The game is Released but is a ~~piece of shi~~ a work in progress
 
 ## How to run code
 Download the shipGame folder, and  find the ship.py file and run it. You may have to download python & pygame.
 
-I shall create a .itch.io page once it's complete. 
+I created an itch.io link https://luke-beekham.itch.io/the-first-line
 
 ## Credits
 1. All made my Me *Luke Beekham*
